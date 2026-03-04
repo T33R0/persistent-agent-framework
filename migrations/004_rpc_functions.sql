@@ -63,6 +63,53 @@ AS $$
     WHERE pattern = p_pattern AND entry_type = 'mistake' AND status = 'active';
 $$;
 
+-- Hybrid memory loading: importance-ranked + semantic similarity
+-- Boot loads top N by importance (always-available critical context).
+-- Per-task loads top M by cosine similarity to the current query embedding.
+-- Results are deduplicated (similarity pool excludes importance pool).
+CREATE OR REPLACE FUNCTION hybrid_memory_load(
+    p_query_embedding vector,
+    p_importance_limit INTEGER DEFAULT 5,
+    p_similarity_limit INTEGER DEFAULT 10
+)
+RETURNS TABLE(
+    id UUID,
+    key TEXT,
+    content TEXT,
+    category TEXT,
+    importance INTEGER,
+    tags TEXT[],
+    source TEXT,
+    similarity FLOAT
+)
+LANGUAGE sql STABLE
+AS $$
+    WITH by_importance AS (
+        SELECT
+            m.id, m.key, m.content, m.category, m.importance, m.tags,
+            'importance'::TEXT as source,
+            0.0::FLOAT as similarity
+        FROM agent_memory m
+        ORDER BY m.importance DESC
+        LIMIT p_importance_limit
+    ),
+    by_similarity AS (
+        SELECT
+            m.id, m.key, m.content, m.category, m.importance, m.tags,
+            'similarity'::TEXT as source,
+            (1 - (m.embedding <=> p_query_embedding))::FLOAT as similarity
+        FROM agent_memory m
+        WHERE m.embedding IS NOT NULL
+            AND m.id NOT IN (SELECT bi.id FROM by_importance bi)
+        ORDER BY m.embedding <=> p_query_embedding
+        LIMIT p_similarity_limit
+    )
+    SELECT * FROM by_importance
+    UNION ALL
+    SELECT * FROM by_similarity
+    ORDER BY source, importance DESC;
+$$;
+
 -- Get unembedded records (for nightly vectorization job)
 CREATE OR REPLACE FUNCTION get_unembedded_memories(p_limit INTEGER DEFAULT 50)
 RETURNS SETOF agent_memory
