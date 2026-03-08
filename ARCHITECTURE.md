@@ -94,7 +94,7 @@ The organizational model borrows from emergency management's Incident Command Sy
 The filesystem mirrors the organizational chart.
 
 ```
-~/Projects/
+my-agent/                                 # Your project root (any directory)
 ├── .claude/                           # Claude Code settings & hooks
 │   ├── settings.json                  # Permissions, hooks config
 │   ├── settings.local.json            # Session-specific overrides
@@ -747,7 +747,7 @@ Each subordinate agent has a SHIELD.md that defines:
 ### Step 1: Create Directory Structure
 
 ```bash
-mkdir -p ~/Projects/{command_and_general_staff/deputy/{your-agent}/soul,command_and_general_staff/deputy/{your-agent}/memory/daily,command_and_general_staff/deputy/{your-agent}/scripts/lib,command_and_general_staff/deputy/{your-agent}/skills,command_and_general_staff/deputy/{your-agent}/logs,operations,planning,logistics,finance,staging}
+mkdir -p my-agent/{command_and_general_staff/deputy/{your-agent}/soul,command_and_general_staff/deputy/{your-agent}/memory/daily,command_and_general_staff/deputy/{your-agent}/scripts/lib,command_and_general_staff/deputy/{your-agent}/skills,command_and_general_staff/deputy/{your-agent}/logs,operations,planning,logistics,finance,staging}
 ```
 
 ### Step 2: Create Root CLAUDE.md
@@ -840,19 +840,19 @@ export OPERATOR_DISCORD_ID="your-discord-user-id"
 
 ```bash
 # Telegram poller
-node ~/Projects/command_and_general_staff/deputy/{agent}/scripts/install-poller.mjs
+node command_and_general_staff/deputy/{agent}/scripts/install-poller.mjs
 
 # Discord bot
-node ~/Projects/command_and_general_staff/deputy/{agent}/scripts/install-discord-bot.mjs
+node command_and_general_staff/deputy/{agent}/scripts/install-discord-bot.mjs
 
 # Daemon
-node ~/Projects/command_and_general_staff/deputy/{agent}/scripts/install-daemon.mjs
+node command_and_general_staff/deputy/{agent}/scripts/install-daemon.mjs
 ```
 
 ### Step 9: First Boot
 
 ```bash
-cd ~/Projects && claude
+cd my-agent && claude
 ```
 
 The agent should:

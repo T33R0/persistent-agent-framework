@@ -63,7 +63,7 @@ The architecture guide covers features at different maturity levels. Each sectio
 
 1. **Create your directory structure**
    ```bash
-   mkdir -p ~/Projects/{command_and_general_staff/deputy/your-agent/{soul,memory/daily,scripts/lib,skills,logs},operations,planning,logistics,finance,staging}
+   mkdir -p my-agent/{command_and_general_staff/deputy/your-agent/{soul,memory/daily,scripts/lib,skills,logs},operations,planning,logistics,finance,staging}
    ```
 
 2. **Set up Supabase** - Apply the migrations in order
@@ -81,7 +81,7 @@ The architecture guide covers features at different maturity levels. Each sectio
 
 5. **Install hooks** - Copy `hooks/` scripts and configure in `.claude/settings.json`
 
-6. **Boot** - `cd ~/Projects && claude`
+6. **Boot** - `cd my-agent && claude`
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full setup guide and deep explanation of every component.
 
