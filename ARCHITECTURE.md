@@ -797,7 +797,18 @@ Log every mistake. Log every win.
 
 ### Step 3: Create Soul Files
 
-Create `soul/SOUL.md`, `soul/USER.md`, `soul/HARNESS.md` following the templates in the File Reference section.
+Copy the templates into your agent's soul directory and customize them:
+
+```bash
+cp templates/SOUL.md command_and_general_staff/deputy/{your-agent}/soul/
+cp templates/USER.md command_and_general_staff/deputy/{your-agent}/soul/
+cp templates/HARNESS.md command_and_general_staff/deputy/{your-agent}/soul/
+
+# Optional: SHIELD.md is for subordinate agents that interact with external users
+cp templates/SHIELD.md command_and_general_staff/deputy/{your-agent}/soul/
+```
+
+Fill in the `{placeholders}` in each file. See the File Reference section for what each file controls.
 
 ### Step 4: Set Up Supabase
 

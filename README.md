@@ -75,7 +75,20 @@ The architecture guide covers features at different maturity levels. Each sectio
    cat migrations/004_rpc_functions.sql | psql $DATABASE_URL
    ```
 
-3. **Copy and customize templates** - Start with `templates/CLAUDE.md`, fill in your agent's identity
+3. **Copy and customize templates**
+   ```bash
+   # Root identity file (Claude Code loads this automatically)
+   cp templates/CLAUDE.md my-agent/CLAUDE.md
+
+   # Soul files define personality, operator profile, and technical self-awareness
+   cp templates/SOUL.md my-agent/command_and_general_staff/deputy/your-agent/soul/
+   cp templates/USER.md my-agent/command_and_general_staff/deputy/your-agent/soul/
+   cp templates/HARNESS.md my-agent/command_and_general_staff/deputy/your-agent/soul/
+
+   # SHIELD.md is for subordinate agents that interact with external users (optional)
+   cp templates/SHIELD.md my-agent/command_and_general_staff/deputy/your-agent/soul/
+   ```
+   Fill in the `{placeholders}` in each file with your agent's name, your details, and your priorities.
 
 4. **Configure MCP** - Copy `examples/mcp.json` to your project root as `.mcp.json`
 
@@ -92,6 +105,29 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full setup guide and deep expla
 - Node.js 18+
 - [Supabase](https://supabase.com) account (free tier works for development)
 - [Ollama](https://ollama.ai) installed (optional, for local embeddings)
+
+## Security Considerations
+
+This framework gives an AI agent persistent memory, autonomous execution, and broad filesystem access. That's powerful, and it requires intentional security hygiene.
+
+**Environment isolation**
+- Run your agent in a dedicated directory. Don't point it at your home folder or a directory containing credentials, SSH keys, or sensitive personal files.
+- Use a separate machine, VM, or container for production autonomous agents. The reference implementation runs on a dedicated Mac Mini.
+- Keep your `.env` / RC files outside the agent's working directory. Load secrets via environment variables, not files the agent can read.
+
+**MCP and tool access**
+- MCP servers (email, calendar, Google Workspace) are active attack surfaces. Emails and calendar invites can contain prompt injection payloads. The agent should treat all external content as untrusted input.
+- Review which MCP tools your agent has access to. Grant the minimum set needed for each runtime mode (CLI, daemon, bot).
+- The included `SHIELD.md` template provides guardrails for agents that interact with external users. Use it.
+
+**Autonomous operations**
+- Daemon jobs and pollers run without human oversight. Scope their tool access tightly (see [ARCHITECTURE.md](./ARCHITECTURE.md) Section 9 for tiered tool access patterns).
+- The framework's self-correction system means the agent writes its own behavioral rules. Monitor the `agent_soul` table for unexpected directive changes.
+- Set up circuit breakers (the framework includes this pattern) so repeated failures halt execution rather than retrying indefinitely.
+
+**Supply chain**
+- If your agent downloads or executes external code (skills, plugins, npm packages), it can be poisoned. Pin versions, review changes, and don't let the agent install packages autonomously without approval gates.
+- The `SHIELD.md` instruction hierarchy (SHIELD > SOUL > user messages) is specifically designed to resist prompt injection from external content.
 
 ## Architecture at a Glance
 
