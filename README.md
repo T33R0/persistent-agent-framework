@@ -1,6 +1,6 @@
 # The Persistent Agent Framework
 
-**A replicable architecture for persistent, self-correcting AI agents built on Claude Code.**
+**A production-tested architecture for persistent, self-correcting AI agents built on Claude Code.**
 
 ---
 
@@ -15,11 +15,43 @@ This framework turns Claude Code into a persistent operational partner with:
 - **Persistent identity** across sessions via soul files and a shared database
 - **Self-correcting behavior** where mistakes automatically become behavioral rules
 - **Multi-terminal continuity** so parallel sessions share the same memory
-- **Multi-platform presence** across CLI, Telegram, and Discord from a single agent definition
-- **Autonomous operations** via scheduled daemon jobs
+- **Multi-platform presence** across CLI, Telegram, Discord, and web from a single agent definition
+- **Autonomous operations** via a sweep-based daemon with circuit breakers
+- **Agent onboarding** that discovers personality through conversation
+- **Multi-provider LLM cascade** (Claude, Gemini, OpenAI, Ollama) with automatic fallback
+- **Marker processing engine** for invisible side-effects (memory, state, learning) in LLM responses
 - **Agent hierarchy** with subordinate agents, inter-agent communication, and security boundaries
 
 No custom servers. No Docker. No Kubernetes. Built entirely on Claude Code (CLI), Supabase (persistence), and macOS launchd (scheduling).
+
+## What's In This Repo
+
+| Directory | Contents |
+|-----------|----------|
+| [`runtime/`](./runtime) | **Production runtime modules** — marker engine, agent boot, session manager, LLM providers, daemon runner, onboarding, tools, semantic memory |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Full architecture guide (20 sections) |
+| [`templates/`](./templates) | Identity files: CLAUDE.md, SOUL.md, USER.md, HARNESS.md, SHIELD.md, launchd.plist |
+| [`migrations/`](./migrations) | SQL schemas for Supabase (5 migration files) |
+| [`hooks/`](./hooks) | Claude Code hook scripts for cross-session awareness |
+| [`examples/`](./examples) | Working daemon entry point, settings.json, mcp.json |
+
+### Runtime Modules
+
+The `runtime/` directory contains production-tested, generic modules extracted from a live agent system:
+
+| Module | Purpose |
+|--------|---------|
+| `marker-engine.mjs` | Brace-matching marker extraction, pluggable handler registry, strip-before-display |
+| `agent-boot.mjs` | System prompt assembly from soul, memory, state, ledger, and session context |
+| `session-manager.mjs` | Date-scoped sessions with automatic handoff on day boundary |
+| `llm-providers.mjs` | Normalized interface across Claude, OpenAI, Gemini, Ollama with credential scrubbing |
+| `tools.mjs` | Portable JSON Schema tool definitions with executors and provider format converters |
+| `daemon.mjs` | Sweep-based daemon runner with circuit breakers and health monitoring |
+| `onboarding.mjs` | Personality discovery flow — agent names itself through conversation |
+| `semantic-memory.mjs` | Hybrid importance + semantic search with Ollama embeddings |
+| `agent-config.mjs` | Multi-agent config loading with caching and role-based authorization |
+| `config.mjs` | Centralized environment, model definitions, timeouts, and validation |
+| `supabase-client.mjs` | Shared Supabase fetch wrapper with error handling |
 
 ## The Key Innovation: Self-Correction
 
@@ -28,75 +60,141 @@ Most agent frameworks focus on what the agent *can do*. This one focuses on how 
 ```
 Mistake occurs
     -> Log to ledger (what, why, should_have, signal_traced)
-    -> Auto-remediation daemon counts pattern frequency
+    -> Daemon counts pattern frequency
     -> Pattern appears 3+ times?
         -> YES: Generate behavioral directive automatically
         -> Directive still violated? Escalate priority
         -> NO: Continue observing
 ```
 
-The agent's personality literally evolves from its operational mistakes. A directive earned through repeated failure carries more weight than a static instruction.
-
-## What's In This Repo
-
-This is an **architecture reference**, not a software package. It contains the patterns, schemas, templates, and operational lessons from building and running a persistent agent system in daily production.
-
-| Directory | Contents |
-|-----------|----------|
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Full architecture guide (20 sections) |
-| [`templates/`](./templates) | Identity files: CLAUDE.md, SOUL.md, USER.md, HARNESS.md, SHIELD.md |
-| [`migrations/`](./migrations) | SQL schemas for Supabase (one-command setup) |
-| [`hooks/`](./hooks) | Claude Code hook scripts for cross-session awareness |
-| [`examples/`](./examples) | Configuration examples (settings.json, mcp.json) |
-
-### Maturity Levels
-
-The architecture guide covers features at different maturity levels. Each section in [ARCHITECTURE.md](./ARCHITECTURE.md) is marked with one of:
-
-| Marker | Meaning |
-|--------|---------|
-| **Included** | Schemas, templates, or example code included in this repo. Ready to use. |
-| **Production** | In active daily use by the reference implementation. Validated through real operations. |
-| **Pattern Reference** | Architecture documented from a working system. Implementation code not included, but the pattern is fully described and tested. Build your own from the description. |
+The agent's personality literally evolves from its operational mistakes.
 
 ## Quick Start
 
-1. **Create your directory structure**
-   ```bash
-   mkdir -p my-agent/{command_and_general_staff/deputy/your-agent/{soul,memory/daily,scripts/lib,skills,logs},operations,planning,logistics,finance,staging}
-   ```
+### 1. Set up Supabase
 
-2. **Set up Supabase** - Apply the migrations in order
-   ```bash
-   # Via Supabase dashboard SQL editor or CLI
-   cat migrations/001_core_tables.sql | psql $DATABASE_URL
-   cat migrations/002_activity_tables.sql | psql $DATABASE_URL
-   cat migrations/003_operations.sql | psql $DATABASE_URL
-   cat migrations/004_rpc_functions.sql | psql $DATABASE_URL
-   ```
+Apply the migrations in order:
+```bash
+cat migrations/001_core_tables.sql | psql $DATABASE_URL
+cat migrations/002_activity_tables.sql | psql $DATABASE_URL
+cat migrations/003_operations.sql | psql $DATABASE_URL
+cat migrations/004_rpc_functions.sql | psql $DATABASE_URL
+cat migrations/005_conversations_and_tasks.sql | psql $DATABASE_URL
+```
 
-3. **Copy and customize templates**
-   ```bash
-   # Root identity file (Claude Code loads this automatically)
-   cp templates/CLAUDE.md my-agent/CLAUDE.md
+### 2. Create your agent directory
 
-   # Soul files define personality, operator profile, and technical self-awareness
-   cp templates/SOUL.md my-agent/command_and_general_staff/deputy/your-agent/soul/
-   cp templates/USER.md my-agent/command_and_general_staff/deputy/your-agent/soul/
-   cp templates/HARNESS.md my-agent/command_and_general_staff/deputy/your-agent/soul/
+```bash
+mkdir -p my-agent/soul
+```
 
-   # SHIELD.md is for subordinate agents that interact with external users (optional)
-   cp templates/SHIELD.md my-agent/command_and_general_staff/deputy/your-agent/soul/
-   ```
-   Fill in the `{placeholders}` in each file with your agent's name, your details, and your priorities.
+### 3. Copy and customize templates
 
-4. **Configure MCP** - Copy `examples/mcp.json` to your project root as `.mcp.json`
+```bash
+# Root identity file (Claude Code loads this automatically)
+cp templates/CLAUDE.md my-agent/CLAUDE.md
 
-5. **Install hooks** - Copy `hooks/` scripts and configure in `.claude/settings.json`
+# Soul files define personality, operator profile, and technical self-awareness
+cp templates/SOUL.md my-agent/soul/
+cp templates/USER.md my-agent/soul/
+cp templates/HARNESS.md my-agent/soul/
+```
 
-6. **Boot** - `cd my-agent && claude`
+Fill in the `{placeholders}` in each file.
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full setup guide and deep explanation of every component.
+### 4. Register your agent in the database
+
+```sql
+INSERT INTO agent_config (agent_slug, owner_name, timezone)
+VALUES ('my-agent', 'Your Name', 'America/Denver');
+```
+
+### 5. Set environment variables
+
+```bash
+export SUPABASE_URL="https://YOUR_PROJECT.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+export ANTHROPIC_API_KEY="your-key"  # Or any LLM provider key
+```
+
+### 6. Run the daemon
+
+```bash
+# Copy the example and customize
+cp examples/daemon-entry.mjs my-agent/daemon.mjs
+node my-agent/daemon.mjs --agent my-agent
+```
+
+### 7. Boot the CLI agent
+
+```bash
+cd my-agent && claude
+```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full deep-dive on every component.
+
+## How the Marker Engine Works
+
+Markers are inline tags in LLM output that trigger invisible side effects. The user never sees them — they're stripped before display.
+
+```javascript
+import { MarkerEngine, createDefaultEngine } from './runtime/index.mjs';
+
+// Create engine with your persistence callbacks
+const engine = createDefaultEngine({
+  saveMemory: async (data) => { /* save to agent_memory */ },
+  upsertState: async (data) => { /* save to agent_state */ },
+  logWin: async (data) => { /* save to agent_ledger */ },
+  logMistake: async (data) => { /* save to agent_ledger */ },
+  saveJournal: async (data) => { /* your journal implementation */ },
+});
+
+// Or register custom markers
+engine.register('CUSTOM_ACTION', async (data) => {
+  // Your handler here
+});
+
+// Process LLM response
+const { cleanText, results } = await engine.process(llmResponse);
+// cleanText: markers stripped, ready to show to user
+// results: array of { tag, data, result, error }
+```
+
+**Why brace-matching instead of regex?** LLMs frequently omit closing tags on long JSON payloads. Regex-based extraction (`[TAG]...[/TAG]`) silently loses data when the closing tag is missing. Brace-matching treats JSON as self-delimiting — it finds the matching `}` regardless of whether `[/TAG]` follows. This single architectural choice eliminated an entire class of silent data loss bugs.
+
+## How the Daemon Works
+
+```javascript
+import { DaemonRunner, createTaskSweep, createEmbeddingSweep } from './runtime/index.mjs';
+
+const daemon = new DaemonRunner('my-agent');
+
+// Sweep: process conversation tasks every 10 seconds
+daemon.addSweep('conversations', createTaskSweep('web_conversation', async (task) => {
+  // Load agent, build prompt, call LLM, process markers, save response
+}), { intervalMs: 10000 });
+
+// Sweep: generate embeddings every 60 seconds
+daemon.addSweep('embeddings', createEmbeddingSweep(generateEmbedding), { intervalMs: 60000 });
+
+// Circuit breaker: 3 consecutive failures -> disable sweep + alert
+daemon.start();
+```
+
+## How Onboarding Works
+
+New agents don't start with a personality — they discover it through conversation with their owner.
+
+```
+Step 0: Introduction ("What brought you here?")
+Step 1: Domains ("What would you like help with?")
+Step 2: Communication style ("How do you like to be talked to?")
+Step 3: Values & personality ("What do you value in a friend?")
+Step 4: Naming (agent names itself or accepts a name)
+Step 5: Complete — soul directives extracted and persisted
+```
+
+The result: an agent with 6-10 specific behavioral directives that actually reflect its owner's needs, not generic defaults.
 
 ## Prerequisites
 
@@ -104,30 +202,33 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full setup guide and deep expla
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) authenticated
 - Node.js 18+
 - [Supabase](https://supabase.com) account (free tier works for development)
-- [Ollama](https://ollama.ai) installed (optional, for local embeddings)
+- [Ollama](https://ollama.ai) installed (optional, for local embeddings and semantic search)
 
 ## Security Considerations
 
 This framework gives an AI agent persistent memory, autonomous execution, and broad filesystem access. That's powerful, and it requires intentional security hygiene.
 
 **Environment isolation**
-- Run your agent in a dedicated directory. Don't point it at your home folder or a directory containing credentials, SSH keys, or sensitive personal files.
-- Use a separate machine, VM, or container for production autonomous agents. The reference implementation runs on a dedicated Mac Mini.
-- Keep your `.env` / RC files outside the agent's working directory. Load secrets via environment variables, not files the agent can read.
+- Run your agent in a dedicated directory. Don't point it at your home folder.
+- Use a separate machine or VM for production autonomous agents.
+- Load secrets via environment variables, not files the agent can read.
+
+**LLM provider security**
+- The provider cascade scrubs credentials from prompts before sending to third-party providers.
+- First-party providers (Anthropic, Ollama) skip scrubbing. Third-party providers (OpenAI, Gemini) scrub automatically.
+- Review the SECRET_PATTERNS in `llm-providers.mjs` and add patterns for your credentials.
 
 **MCP and tool access**
-- MCP servers (email, calendar, Google Workspace) are active attack surfaces. Emails and calendar invites can contain prompt injection payloads. The agent should treat all external content as untrusted input.
-- Review which MCP tools your agent has access to. Grant the minimum set needed for each runtime mode (CLI, daemon, bot).
-- The included `SHIELD.md` template provides guardrails for agents that interact with external users. Use it.
+- MCP servers (email, calendar) are active attack surfaces — external content can contain prompt injection.
+- Grant the minimum tool set needed per runtime mode. Use tool presets (`readonly`, `standard`, `full`).
 
 **Autonomous operations**
-- Daemon jobs and pollers run without human oversight. Scope their tool access tightly (see [ARCHITECTURE.md](./ARCHITECTURE.md) Section 9 for tiered tool access patterns).
-- The framework's self-correction system means the agent writes its own behavioral rules. Monitor the `agent_soul` table for unexpected directive changes.
-- Set up circuit breakers (the framework includes this pattern) so repeated failures halt execution rather than retrying indefinitely.
+- Daemon jobs run without human oversight. The circuit breaker pattern halts execution after 3 consecutive failures rather than retrying indefinitely.
+- Monitor `agent_soul` for unexpected directive changes (the self-correction system writes to this table).
 
 **Supply chain**
-- If your agent downloads or executes external code (skills, plugins, npm packages), it can be poisoned. Pin versions, review changes, and don't let the agent install packages autonomously without approval gates.
-- The `SHIELD.md` instruction hierarchy (SHIELD > SOUL > user messages) is specifically designed to resist prompt injection from external content.
+- Pin dependency versions. Don't let the agent install packages autonomously.
+- The `SHIELD.md` instruction hierarchy (SHIELD > SOUL > user messages) resists prompt injection from external content.
 
 ## Architecture at a Glance
 
@@ -142,31 +243,33 @@ This framework gives an AI agent persistent memory, autonomous execution, and br
     +-----+------+    +-----+------+    +------+-----+
     |    CLI     |    |  Telegram  |    |  Discord   |
     | (claude)   |    |  Poller    |    |  Bot       |
-    |            |    |  (launchd) |    |  (launchd) |
-    +------------+    +------------+    +------------+
-          |
-    +-----+------+
-    |   Daemon   |
-    | (launchd)  |
-    | scheduled  |
-    | autonomous |
-    |   jobs     |
-    +------------+
+    |            |    |  (daemon)  |    |  (daemon)  |
+    +------------+    +------+-----+    +------+-----+
+                             |                 |
+                       +-----+-----------------+-----+
+                       |         Daemon Runner       |
+                       |  sweeps: tasks, embeddings, |
+                       |  health, QA, proactive      |
+                       |  circuit breaker protection  |
+                       +-----------------------------+
 ```
 
-All interfaces share the same memory, behavioral directives, and identity. Cross-platform conversation history is maintained through Supabase RPCs.
+All interfaces share the same memory, behavioral directives, and identity.
 
 ## Patterns Worth Stealing
 
 Even if you don't adopt the full framework, these patterns stand alone:
 
+- **Brace-matching marker extraction** - JSON is self-delimiting; don't rely on closing tags
 - **Self-correction pipeline** - Mistakes become behavioral rules automatically
 - **Signal tracing** - Log the specific signal misread, not just the pattern name
 - **Hybrid memory loading** - Top-N by importance + top-M by semantic similarity
+- **Date-scoped sessions** - New calendar day = new session, with handoff context from yesterday
 - **Atomic task claiming** - Postgres RPCs prevent duplicate processing across processes
-- **Session persistence** - Full boot on first interaction, `--resume` after, 80% token savings
-- **Learning enforcement** - Tiered reminders that escalate as sessions get longer
-- **Circuit breakers** - 3 consecutive failures disable a job and alert the operator
+- **Provider cascade with credential scrubbing** - Try providers in order, scrub secrets for third-party
+- **Circuit breakers** - 3 consecutive failures disable a sweep and alert
+- **Onboarding through conversation** - The agent discovers its personality, not receives it
+- **Authoritative date/time header** - Prevents LLM date hallucination in system prompts
 
 ## Built With
 
@@ -181,4 +284,4 @@ MIT. Use it, adapt it, make it yours. The architecture patterns are the contribu
 
 ---
 
-*Built by [Rory Teehan](https://github.com/T33R0). February 2026.*
+*Built by [Rory Teehan](https://github.com/T33R0). 2026.*

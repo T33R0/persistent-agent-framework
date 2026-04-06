@@ -1,0 +1,24 @@
+# Environment and secrets
+.env
+.env.*
+.env*.local
+*.key
+*.pem
+credentials.json
+secrets.*
+
+# Runtime and caches
+node_modules/
+.DS_Store
+*.log
+
+# Claude Code artifacts
+.claude/activity.jsonl
+.claude/.remote-activity-cache
+
+# macOS launch agents
+*.plist
+
+# Editor files
+.vscode/
+.idea/
