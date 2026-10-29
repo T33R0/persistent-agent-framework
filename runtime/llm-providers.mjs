@@ -559,5 +559,4 @@ export {
   openaiChat,
   geminiChat,
   ollamaChat,
-  scrubSecrets,
 };
