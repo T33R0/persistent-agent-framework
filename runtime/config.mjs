@@ -43,7 +43,11 @@ export const CLAUDE_MODELS = {
 };
 
 export const GEMINI_MODELS = {
-  opus: "gemini-2.5-pro",
+  // gemini-2.5-pro is dead for the shared free-tier key ("no longer available
+  // to new users", verified 2026-08-31) and every pro-tier model 429s on quota.
+  // The opus slot is only a different-capacity-pool fallback, so a different
+  // flash generation serves that purpose.
+  opus: "gemini-3.5-flash",
   sonnet: "gemini-2.5-flash",
   haiku: "gemini-2.5-flash",
 };

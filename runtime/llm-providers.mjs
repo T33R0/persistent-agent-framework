@@ -278,7 +278,7 @@ function resolveGeminiModel(model) {
   const lower = model.toLowerCase();
   if (GEMINI_MODELS[lower]) return GEMINI_MODELS[lower];
   if (lower.startsWith("gemini-")) return model;
-  if (lower.includes("pro")) return "gemini-2.5-pro";
+  if (lower.includes("pro")) return "gemini-3.5-flash";
   return "gemini-2.5-flash";
 }
 
